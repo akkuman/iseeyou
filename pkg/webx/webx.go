@@ -18,7 +18,7 @@ type WebX struct {
 	httpxRunnerOpts *runner.Options
 }
 
-func NewWebX(opt *options.Options) (*WebX, error) {
+func NewWebX(opt *options.Options) *WebX {
 	var err error
 	webx := new(WebX)
 	webx.opt = opt
@@ -28,9 +28,9 @@ func NewWebX(opt *options.Options) (*WebX, error) {
 	}
 	webx.httpxRunner, err = runner.New(webx.httpxRunnerOpts)
 	if err != nil {
-		return nil, err
+		logger.Fatalf("创建 httpx runner 失败: %v", err)
 	}
-	return webx, nil
+	return webx
 }
 
 func (x *WebX) Act(ctx context.Context, targets <-chan interface{}) <-chan interface{} {
@@ -55,6 +55,7 @@ func (x *WebX) Act(ctx context.Context, targets <-chan interface{}) <-chan inter
 	go func() {
 		defer close(resultChan)
 		for v := range runnerResultCh {
+			logger.Infof("[%d] %s [%s]", v.StatusCode, v.URL, v.Title)
 			resultChan <- v
 		}
 	}()

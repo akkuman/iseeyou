@@ -14,11 +14,7 @@ func TestWebXAct(t *testing.T) {
 	opt := options.Options{
 		WebXThreadCount: 50,
 	}
-	x, err := NewWebX(&opt)
-	if err != nil {
-		t.Error(err)
-		return
-	}
+	x := NewWebX(&opt)
 	inCh := make(chan interface{}, 10)
 	inCh <- portscan.IPPort{
 		IP: net.ParseIP("96.43.94.90"),

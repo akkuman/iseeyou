@@ -3,8 +3,6 @@ module github.com/akkuman/iseeyou
 go 1.18
 
 require (
-	github.com/agiledragon/gomonkey/v2 v2.8.0
-	github.com/dustin/go-broadcast v0.0.0-20211018055107-71439988bd91
 	github.com/google/gopacket v1.1.20-0.20210429153827-3eaba0894325
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/phayes/freeport v0.0.0-20220201140144-74d24b5ae9f5

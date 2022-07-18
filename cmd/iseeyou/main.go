@@ -6,10 +6,9 @@ import (
 	"net"
 	"os"
 
-	"github.com/akkuman/iseeyou/logger"
 	"github.com/akkuman/iseeyou/pkg/options"
 	"github.com/akkuman/iseeyou/pkg/portscan"
-	"github.com/dustin/go-broadcast"
+	"github.com/akkuman/iseeyou/pkg/webx"
 	"github.com/urfave/cli/v2"
 )
 
@@ -40,6 +39,13 @@ func main() {
 						Required: false,
 						Value:    false,
 					},
+					&cli.IntFlag{
+						Name: "webx-threads",
+						Aliases: []string{"wt"},
+						Usage: "获取web信息的线程数",
+						Required: false,
+						Value: 50,
+					},
 					// &cli.StringFlag{
 					// 	Name:    "port",
 					// 	Aliases: []string{"p"},
@@ -48,10 +54,13 @@ func main() {
 					// },
 				},
 				Action: func(c *cli.Context) error {
+					opt := options.Options{}
 					cidr := c.String("cidr")
-					bandwidth := c.String("bandwidth")
+					opt.NetBandwidth = c.String("bandwidth")
+					isWeb := c.Bool("web")
+					opt.WebXThreadCount = c.Int("webx-threads")
 					// port := c.String("port")
-					ipports := make(chan *portscan.IPPort, 100)
+					ipports := make(chan interface{}, 100)
 					go func() {
 						defer close(ipports)
 						for i := 0; i < 65535; i++ {
@@ -61,14 +70,13 @@ func main() {
 							}
 						}
 					}()
-					opt := options.Options{
-						NetBandwidth: bandwidth,
-					}
-					scanner := portscan.NewScanner(opt)
-					oChanIpPortWithTcpOpen := scanner.Act(context.Background(), ipports)
-					// iChanwebInfo := make(chan *portscan.IPPort, 100)
-					for ipport := range oChanIpPortWithTcpOpen {
-						logger.Infof("%s:%d open", ipport.IP.String(), ipport.Port)
+					ctx := context.Background()
+					scanner := portscan.NewScanner(&opt)
+					chIpPortWithTcpOpen := scanner.Act(ctx, ipports)
+					if isWeb {
+						webxClient := webx.NewWebX(&opt)
+						webxResult := webxClient.Act(ctx, chIpPortWithTcpOpen)
+						for range webxResult {}
 					}
 					return nil
 				},
@@ -79,17 +87,4 @@ func main() {
 	if err := app.Run(os.Args); err != nil {
 		log.Fatal(err)
 	}
-}
-
-
-func workerHttpx(b broadcast.Broadcaster) {
-	// ch := make(chan interface{})
-	// b.Register(ch)
-	// defer b.Unregister(ch)
-
-	// options := runner.Options{
-	// 	Methods:   "GET",
-	// 	InputFile: inputFile,
-	// }
-	// httpxRunner, err := runner.New(&options)
 }
