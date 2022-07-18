@@ -3,6 +3,19 @@ module github.com/akkuman/iseeyou
 go 1.18
 
 require (
+	github.com/agiledragon/gomonkey/v2 v2.8.0
+	github.com/dustin/go-broadcast v0.0.0-20211018055107-71439988bd91
+	github.com/google/gopacket v1.1.20-0.20210429153827-3eaba0894325
+	github.com/patrickmn/go-cache v2.1.0+incompatible
+	github.com/phayes/freeport v0.0.0-20220201140144-74d24b5ae9f5
+	github.com/projectdiscovery/httpx v1.2.3
+	github.com/remeh/sizedwaitgroup v1.0.0
+	github.com/sirupsen/logrus v1.8.1
+	github.com/urfave/cli/v2 v2.11.0
+	go.uber.org/ratelimit v0.2.0
+)
+
+require (
 	github.com/Mzack9999/go-http-digest-auth-client v0.6.1-0.20220414142836-eb8883508809 // indirect
 	github.com/PuerkitoBio/goquery v1.8.0 // indirect
 	github.com/akrylysov/pogreb v0.10.1 // indirect
@@ -16,9 +29,7 @@ require (
 	github.com/corpix/uarand v0.2.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/dimchansky/utfbom v1.1.1 // indirect
-	github.com/dustin/go-broadcast v0.0.0-20211018055107-71439988bd91 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
-	github.com/google/gopacket v1.1.20-0.20210429153827-3eaba0894325 // indirect
 	github.com/gorilla/css v1.0.0 // indirect
 	github.com/hbakhtiyor/strsim v0.0.0-20190107154042-4d2bbb273edf // indirect
 	github.com/hdm/jarm-go v0.0.7 // indirect
@@ -29,8 +40,6 @@ require (
 	github.com/miekg/dns v1.1.48 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
-	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
-	github.com/phayes/freeport v0.0.0-20220201140144-74d24b5ae9f5 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/projectdiscovery/blackrock v0.0.0-20210903102120-5a9d2412d21d // indirect
 	github.com/projectdiscovery/cdncheck v0.0.4-0.20220413175814-b47bc2d578b1 // indirect
@@ -44,7 +53,6 @@ require (
 	github.com/projectdiscovery/gologger v1.1.4 // indirect
 	github.com/projectdiscovery/hmap v0.0.2-0.20210917080408-0fd7bd286bfa // indirect
 	github.com/projectdiscovery/httputil v0.0.0-20210816170244-86fd46bc09f5 // indirect
-	github.com/projectdiscovery/httpx v1.2.3 // indirect
 	github.com/projectdiscovery/iputil v0.0.0-20220613112553-9b6873b2c619 // indirect
 	github.com/projectdiscovery/mapcidr v1.0.1 // indirect
 	github.com/projectdiscovery/networkpolicy v0.0.1 // indirect
@@ -56,15 +64,12 @@ require (
 	github.com/projectdiscovery/stringsutil v0.0.0-20220612082425-0037ce9f89f3 // indirect
 	github.com/projectdiscovery/urlutil v0.0.0-20220603144104-f4c60e5107b2 // indirect
 	github.com/projectdiscovery/wappalyzergo v0.0.50 // indirect
-	github.com/remeh/sizedwaitgroup v1.0.0 // indirect
 	github.com/rs/xid v1.4.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/saintfish/chardet v0.0.0-20120816061221-3af4cd4741ca // indirect
-	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/syndtr/goleveldb v1.0.0 // indirect
 	github.com/ulule/deepcopier v0.0.0-20200430083143-45decc6639b6 // indirect
-	github.com/urfave/cli/v2 v2.11.0 // indirect
 	github.com/weppos/publicsuffix-go v0.15.1-0.20210928183822-5ee35905bd95 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	github.com/yl2chen/cidranger v1.0.2 // indirect
@@ -72,7 +77,6 @@ require (
 	github.com/zmap/zcrypto v0.0.0-20211005224000-2d0ffdec8a9b // indirect
 	go.etcd.io/bbolt v1.3.6 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
-	go.uber.org/ratelimit v0.2.0 // indirect
 	golang.org/x/crypto v0.0.0-20220210151621-f4118a5b28e2 // indirect
 	golang.org/x/mod v0.4.2 // indirect
 	golang.org/x/net v0.0.0-20220617184016-355a448f1bc9 // indirect
@@ -83,3 +87,5 @@ require (
 	gopkg.in/ini.v1 v1.62.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/projectdiscovery/httpx => github.com/akkuman/httpx v1.2.3-0.20220718055200-506267f15eaf
