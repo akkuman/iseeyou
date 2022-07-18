@@ -23,8 +23,10 @@ func NewWebX(opt *options.Options) *WebX {
 	webx := new(WebX)
 	webx.opt = opt
 	webx.httpxRunnerOpts = &runner.Options{
-		Methods: "GET",
-		Threads: opt.WebXThreadCount,
+		Methods:         "GET",
+		Threads:         opt.WebXThreadCount,
+		FollowRedirects: true,
+		Retries:         0,
 	}
 	webx.httpxRunner, err = runner.New(webx.httpxRunnerOpts)
 	if err != nil {
