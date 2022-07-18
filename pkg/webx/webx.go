@@ -3,6 +3,7 @@ package webx
 import (
 	"context"
 	"fmt"
+	"math"
 
 	"github.com/akkuman/iseeyou/logger"
 	"github.com/akkuman/iseeyou/pkg/options"
@@ -23,10 +24,21 @@ func NewWebX(opt *options.Options) *WebX {
 	webx := new(WebX)
 	webx.opt = opt
 	webx.httpxRunnerOpts = &runner.Options{
-		Methods:         "GET",
-		Threads:         opt.WebXThreadCount,
-		FollowRedirects: true,
-		Retries:         0,
+		Methods:                   "GET",
+		Threads:                   opt.WebXThreadCount,
+		StatusCode:                true,
+		ExtractTitle:              true,
+		OutputServerHeader:        true,
+		OutputCDN:                 true,
+		ExcludeCDN:                true,
+		FollowRedirects:           true,
+		Retries:                   0,
+		MaxRedirects:              10,            // default
+		RateLimit:                 4000,          // 控制最大速度
+		HostMaxErrors:             30,            // default
+		Timeout:                   5,             // default
+		MaxResponseBodySizeToSave: math.MaxInt32, // default
+		MaxResponseBodySizeToRead: math.MaxInt32, // default
 	}
 	webx.httpxRunner, err = runner.New(webx.httpxRunnerOpts)
 	if err != nil {
