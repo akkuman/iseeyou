@@ -42,7 +42,7 @@ func (x *WebX) Act(ctx context.Context, targets <-chan interface{}) <-chan inter
 		defer close(runnerResultCh)
 		for target := range targets {
 			switch v := target.(type) {
-			case portscan.IPPort:
+			case *portscan.IPPort:
 				u := fmt.Sprintf("%s:%d", v.IP.String(), v.Port)
 				x.httpxRunner.Process(u, &wg, httpx.HTTPorHTTPS, &scanopts, runnerResultCh)
 			default:
