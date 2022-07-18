@@ -55,6 +55,9 @@ func (x *WebX) Act(ctx context.Context, targets <-chan interface{}) <-chan inter
 	go func() {
 		defer close(resultChan)
 		for v := range runnerResultCh {
+			if v.StatusCode == 0 {
+				continue
+			}
 			logger.Infof("[%d] %s [%s]", v.StatusCode, v.URL, v.Title)
 			resultChan <- v
 		}
