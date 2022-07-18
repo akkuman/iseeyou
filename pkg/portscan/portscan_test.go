@@ -14,7 +14,7 @@ var opt = options.Options{
 }
 
 func TestGetHwAddr(t *testing.T) {
-	scanner := NewScanner(opt)
+	scanner := NewScanner(&opt)
 	dstIface, err := scanner.getHwAddr()
 	if err != nil {
 		t.Error(err)
@@ -24,7 +24,7 @@ func TestGetHwAddr(t *testing.T) {
 }
 
 func TestCalcSYNPacketLen(t *testing.T) {
-	scanner := NewScanner(opt)
+	scanner := NewScanner(&opt)
 	eth := layers.Ethernet{
 		SrcMAC:       scanner.srcIface.HardwareAddr,
 		DstMAC:       scanner.dstMac,

@@ -37,7 +37,7 @@ var packetSerOpts = gopacket.SerializeOptions{
 }
 
 type Scanner struct {
-	opt     options.Options
+	opt     *options.Options
 	limiter ratelimit.Limiter
 	// ipCache 保存已发送数据的
 	ipCache    ifaces.ICache
@@ -49,7 +49,7 @@ type Scanner struct {
 	listenPort int
 }
 
-func NewScanner(opt options.Options) *Scanner {
+func NewScanner(opt *options.Options) *Scanner {
 	var err error
 	scanner := &Scanner{
 		opt:     opt,
@@ -136,13 +136,18 @@ func (s *Scanner) getHwAddr() (net.HardwareAddr, error) {
 	}
 }
 
-func (s *Scanner) Act(ctx context.Context, ipports <-chan *IPPort) <-chan *IPPort {
+func (s *Scanner) Act(ctx context.Context, ipports <-chan interface{}) <-chan interface{} {
 	s.status = Scan
-	res := make(chan *IPPort, 1024)
+	res := make(chan interface{}, 1024)
 	go func() {
 		for ipport := range ipports {
+			v, ok := ipport.(*IPPort)
+			if !ok {
+				logger.Warnf("传入portscan.Act的数据类型并不是 *IPPort")
+				continue
+			}
 			s.limiter.Take()
-			s.writeSYN(ctx, ipport)
+			s.writeSYN(ctx, v)
 		}
 		time.Sleep(DefaultWarmUpTime)
 		s.status = Done
@@ -193,7 +198,7 @@ func (s *Scanner) send(l ...gopacket.SerializableLayer) error {
 	return s.pcapHandle.WritePacketData(buf.Bytes())
 }
 
-func (s *Scanner) recvAck(ctx context.Context, resultChan chan<- *IPPort) error {
+func (s *Scanner) recvAck(ctx context.Context, resultChan chan<- interface{}) error {
 	var snapshotLen = 65536
 	var readtimeout = 1500
 	inactive, err := pcap.NewInactiveHandle(s.srcIface.Name)
@@ -273,6 +278,7 @@ func (s *Scanner) recvAck(ctx context.Context, resultChan chan<- *IPPort) error 
 					if tcp.DstPort != layers.TCPPort(s.listenPort) {
 						continue
 					} else if tcp.SYN && tcp.ACK {
+						logger.Infof("tcp://%v:%d open", ip4.SrcIP, tcp.SrcPort)
 						resultChan <- &IPPort{IP: ip4.SrcIP, Port: uint16(tcp.SrcPort)}
 					}
 				}
