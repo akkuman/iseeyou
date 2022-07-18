@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"strings"
 
 	"github.com/akkuman/iseeyou/logger"
 	"github.com/akkuman/iseeyou/pkg/options"
@@ -11,6 +12,7 @@ import (
 	"github.com/projectdiscovery/httpx/common/httpx"
 	"github.com/projectdiscovery/httpx/runner"
 	"github.com/remeh/sizedwaitgroup"
+	"github.com/spf13/cast"
 )
 
 type WebX struct {
@@ -72,7 +74,17 @@ func (x *WebX) Act(ctx context.Context, targets <-chan interface{}) <-chan inter
 			if v.StatusCode == 0 {
 				continue
 			}
-			logger.Infof("[%d] %s [%s]", v.StatusCode, v.URL, v.Title)
+			codePart := ""
+			if v.ChainStatusCodes != nil {
+				codePart = fmt.Sprintf("[%s]", strings.Join(cast.ToStringSlice(v.ChainStatusCodes), ","))
+			} else {
+				codePart = fmt.Sprintf("[%d]", v.StatusCode)
+			}
+			logText := fmt.Sprintf("%s %s [%s] [%s]", v.URL, codePart, v.Title, v.WebServer)
+			if v.FinalURL != "" {
+				logText = fmt.Sprintf("%s [%s]", logText, v.FinalURL)
+			}
+			logger.Infof(logText)
 			resultChan <- v
 		}
 	}()
