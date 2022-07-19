@@ -169,7 +169,7 @@ func (s *Scanner) writeSYN(ctx context.Context, ipport *IPPort) {
 	}
 	ip4 := layers.IPv4{
 		SrcIP:    s.srcIP,
-		DstIP:    ipport.IP,
+		DstIP:    ipport.IP.To4(),
 		Version:  4,
 		TTL:      64,
 		Protocol: layers.IPProtocolTCP,
@@ -181,7 +181,7 @@ func (s *Scanner) writeSYN(ctx context.Context, ipport *IPPort) {
 	}
 	tcp.SetNetworkLayerForChecksum(&ip4)
 	if err := s.send(&eth, &ip4, &tcp); err != nil {
-		logger.Warnf("error sending to port %v: %v", tcp.DstPort, err)
+		logger.Warnf("error sending to %v:%v: %v", ipport.IP.String(), tcp.DstPort, err)
 		return
 	}
 	s.ipCache.Set(ipport.IP.String(), struct{}{}, -1)

@@ -45,7 +45,7 @@ require (
 	github.com/projectdiscovery/cryptoutil v0.0.0-20210805184155-b5d2512f9345 // indirect
 	github.com/projectdiscovery/fastdialer v0.0.16-0.20220515190512-d9a09aab8663 // indirect
 	github.com/projectdiscovery/fdmax v0.0.3 // indirect
-	github.com/projectdiscovery/fileutil v0.0.0-20220609150212-453ac591c36c // indirect
+	github.com/projectdiscovery/fileutil v0.0.0-20220705195237-01becc2a8963 // indirect
 	github.com/projectdiscovery/goconfig v0.0.0-20210804090219-f893ccd0c69c // indirect
 	github.com/projectdiscovery/goflags v0.0.8 // indirect
 	github.com/projectdiscovery/gologger v1.1.4 // indirect
