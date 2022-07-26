@@ -18,7 +18,6 @@ import (
 	"github.com/akkuman/iseeyou/pkg/util"
 	"github.com/projectdiscovery/fastdialer/fastdialer"
 	"github.com/projectdiscovery/httpx/common/httpx"
-	"github.com/projectdiscovery/httpx/runner"
 	"github.com/projectdiscovery/retryablehttp-go"
 	"github.com/remeh/sizedwaitgroup"
 	"github.com/spf13/cast"
@@ -29,10 +28,6 @@ const (
 	SchemeHTTP  = "http"
 	SchemeHTTPS = "https"
 )
-
-type WebInfo struct {
-	HttpxResult *runner.Result
-}
 
 type HttpResponse struct {
 	Body []byte
