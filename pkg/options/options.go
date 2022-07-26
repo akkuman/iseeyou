@@ -24,7 +24,7 @@ func init() {
 	dir := GetCurPath()
 	ConfigDir = filepath.Join(dir, "./.config/iseeyou/")
 	if !fileutil.FolderExists(ConfigDir) {
-		fileutil.CreateFolder(ConfigDir)
+		os.MkdirAll(ConfigDir, 0777)
 	}
 }
 
