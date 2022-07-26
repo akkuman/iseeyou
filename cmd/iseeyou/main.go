@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -51,6 +52,34 @@ func main() {
 						Required: false,
 						Value:    50,
 					},
+					&cli.IntFlag{
+						Name:     "webx-timeout",
+						Aliases:  []string{"wto"},
+						Usage:    "获取web信息的超时时间",
+						Required: false,
+						Value:    5,
+					},
+					&cli.IntFlag{
+						Name:     "webx-max-redirect",
+						Aliases:  []string{"wmr"},
+						Usage:    "获取web信息跟随跳转最大次数",
+						Required: false,
+						Value:    5,
+					},
+					&cli.IntFlag{
+						Name:     "webx-retry-max",
+						Aliases:  []string{"wrm"},
+						Usage:    "获取web信息的最大重试次数",
+						Required: false,
+						Value:    0,
+					},
+					&cli.IntFlag{
+						Name:     "webx-rate-limit",
+						Aliases:  []string{"wrl"},
+						Usage:    "获取web信息总体最大发包速率",
+						Required: false,
+						Value:    1000,
+					},
 					&cli.StringFlag{
 						Name:     "ports",
 						Aliases:  []string{"p"},
@@ -65,6 +94,10 @@ func main() {
 					opt.NetBandwidth = c.String("bandwidth")
 					isWeb := c.Bool("web")
 					opt.WebXThreadCount = c.Int("webx-threads")
+					opt.WebXTimeout = c.Int("webx-timeout")
+					opt.WebXMaxRedirects = c.Int("webx-max-redirect")
+					opt.WebXRetryMax = c.Int("webx-retry-max")
+					opt.WebXRateLimit = c.Int("webx-rate-limit")
 					opt.ScanPorts = c.String("ports")
 					opt.Init()
 					ctx := context.Background()
@@ -96,7 +129,14 @@ func main() {
 					if isWeb {
 						webxClient := webx.NewWebX(opt)
 						webxResult := webxClient.Act(ctx, chIpPortWithTcpOpen)
-						for range webxResult {
+						for r := range webxResult {
+							switch v := r.(type) {
+							case *webx.Response:
+								fmt.Println(v.LogOutput)
+							default:
+								logger.Warnf("主流程传入未知类型 %T", r)
+								continue
+							} 
 						}
 					}
 					return nil
