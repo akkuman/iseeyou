@@ -115,7 +115,6 @@ func (x *WebX) Act(ctx context.Context, targets <-chan interface{}) <-chan inter
 			switch v := target.(type) {
 			case *portscan.IPPort:
 				wg.Add()
-				logger.Infof("获取到target: %s:%d", v.IP.String(), v.Port)
 				go func() {
 					defer wg.Done()
 					resp := x.Grab(ctx, v.IP.String(), v.Port)
