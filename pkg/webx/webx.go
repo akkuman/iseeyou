@@ -401,9 +401,10 @@ func (x *WebX) DoWebHTMLRequest(ctx context.Context, req *retryablehttp.Request)
 			logger.Warnf("构建web请求异常: %v", err)
 			break
 		}
+		previousHttpResp := httpresp
 		respbody, httpresp, err = x.getResponse(ctx, req)
 		if err != nil {
-			logger.Warnf("跳转后获取响应异常: %v", err)
+			logger.Warnf("%s 跳转后获取响应异常: %v", previousHttpResp.Request.URL.String(), err)
 			break
 		}
 		chain = append(chain, HttpResponse{
