@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 	"time"
 
@@ -23,6 +24,8 @@ import (
 	"github.com/spf13/cast"
 	"go.uber.org/ratelimit"
 )
+
+var checkErrorRegexp = regexp.MustCompile(`(no address found for host|Client\.Timeout exceeded while awaiting headers|could not resolve host)`)
 
 const (
 	SchemeHTTP  = "http"
@@ -160,6 +163,9 @@ func (x *WebX) Grab(ctx context.Context, host string, port uint16) (*Response) {
 		// 获取首页内容
 		resp, err := x.DoWebHTMLRequest(ctx, req)
 		if err != nil {
+			if checkError(err) {
+				break
+			}
 			continue
 		}
 		// 填充url信息
@@ -471,4 +477,11 @@ func buildLog(resp *Response) string {
 		logText += " " + fingerprintPart
 	}
 	return logText
+}
+
+// checkError 检查请求错误，是否应该继续请求
+// ref: https://github.com/projectdiscovery/nuclei/blob/master/v2/pkg/protocols/common/hosterrorscache/hosterrorscache.go#L134
+func checkError(err error) bool {
+	errString := err.Error()
+	return checkErrorRegexp.MatchString(errString)
 }
