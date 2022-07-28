@@ -379,7 +379,7 @@ func (x *WebX) DoWebHTMLRequest(ctx context.Context, req *retryablehttp.Request)
 	for {
 		// 计算跳转次数，达到最大值退出
 		currentRedirectCount += 1
-		if currentRedirectCount >= x.opt.WebXMaxRedirects {
+		if currentRedirectCount > x.opt.WebXMaxRedirects {
 			break
 		}
 		redirectURL, _ := x.getRedirectURL(httpresp, respbody)
