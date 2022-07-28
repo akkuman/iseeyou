@@ -411,13 +411,23 @@ func (x *WebX) DoWebHTMLRequest(ctx context.Context, req *retryablehttp.Request)
 			Resp: httpresp,
 		})
 	}
-	// 编码尝试，获取title
-	respbody, err = httpx.DecodeData(respbody, httpresp.Header)
-	if err != nil {
-		return nil, err
-	}
-	resp.Title = ExtractTitle(respbody)
+
 	resp.RespChain = chain
+	for i:=len(chain)-1 ; i >= 0; i-- {
+		httpresp := chain[i].Resp
+		respbody := chain[i].Body
+		// 编码尝试，获取title
+		respbody, err = httpx.DecodeData(respbody, httpresp.Header)
+		if err != nil {
+			return nil, err
+		}
+		resp.Title = ExtractTitle(respbody)
+		// 如果已经获取到title，则退出
+		if resp.Title != "" {
+			break
+		}
+	}
+
 	return resp, nil
 }
 
