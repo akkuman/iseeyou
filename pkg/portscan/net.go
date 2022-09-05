@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/akkuman/iseeyou/logger"
+	"github.com/google/gopacket/pcap"
 )
 
 // GetInterfaceFromIP gets the name of the network interface from local ip address
@@ -102,4 +103,41 @@ func Band2Rate(bandWith string) int64 {
 	packSize := int64(SYNPacketLen) // 一个DNS包大概有74byte
 	rate = rate / packSize
 	return rate
+}
+
+// GetDeviceName 获取网络接口名称（兼容windows）
+// https://github.com/google/gopacket/issues/456
+// https://github.com/codeyourweb/gopacket/blob/master/examples/arpscan/arpscan.go
+func GetDeviceName(iface *net.Interface) (deviceName string, err error) {
+	devices, err := pcap.FindAllDevs()
+	if err != nil {
+		return "", err
+	}
+	// We just look for IPv4 addresses, so try to find if the interface has one.
+	var addr *net.IPNet
+	if addrs, err := iface.Addrs(); err != nil {
+		return "", err
+	} else {
+		for _, a := range addrs {
+			if ipnet, ok := a.(*net.IPNet); ok {
+				if ip4 := ipnet.IP.To4(); ip4 != nil {
+					addr = &net.IPNet{
+						IP:   ip4,
+						Mask: ipnet.Mask[len(ipnet.Mask)-4:],
+					}
+					break
+				}
+			}
+		}
+	}
+	// Try to find a match between device and interface
+	for _, d := range devices {
+		if strings.Contains(fmt.Sprint(d.Addresses), fmt.Sprint(addr.IP)) {
+			deviceName = d.Name
+		}
+	}
+	if deviceName == "" {
+		err = fmt.Errorf("cannot find the corresponding device for the interface %s", iface.Name)
+	}
+	return deviceName, err
 }

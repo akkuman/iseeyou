@@ -2,7 +2,6 @@ package portscan
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -12,6 +11,7 @@ import (
 	"github.com/akkuman/iseeyou/pkg/cache"
 	"github.com/akkuman/iseeyou/pkg/ifaces"
 	"github.com/akkuman/iseeyou/pkg/options"
+	"github.com/akkuman/iseeyou/pkg/util"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
@@ -31,6 +31,10 @@ type IPPort struct {
 	Port uint16
 }
 
+func (p *IPPort) String() string {
+	return fmt.Sprintf("%s:%d", p.IP.String(), p.Port)
+}
+
 var packetSerOpts = gopacket.SerializeOptions{
 	FixLengths:       true,
 	ComputeChecksums: true,
@@ -44,6 +48,7 @@ type Scanner struct {
 	status     State
 	pcapHandle *pcap.Handle
 	srcIface   *net.Interface
+	deviceName string
 	srcIP      net.IP
 	dstMac     net.HardwareAddr
 	listenPort int
@@ -53,6 +58,7 @@ func NewScanner(opt *options.Options) *Scanner {
 	var err error
 	scanner := &Scanner{
 		opt:     opt,
+		// 缓存默认超时5分钟，代表syn包发出去后，如果五分钟内没有对应的ack，则会丢弃
 		ipCache: cache.NewGoCache(),
 	}
 	rate := Band2Rate(opt.NetBandwidth)
@@ -62,11 +68,16 @@ func NewScanner(opt *options.Options) *Scanner {
 	if err != nil {
 		logger.Fatalf("获取网卡接口失败: %v", err)
 	}
-	scanner.pcapHandle, err = pcap.OpenLive(scanner.srcIface.Name, 65536, true, pcap.BlockForever)
+	scanner.deviceName, err = GetDeviceName(scanner.srcIface)
+	if err != nil {
+		logger.Fatalf("获取网卡接口名称失败: %v", err)
+	}
+	logger.Infof("当前使用的网络接口: %s(%s)", scanner.srcIface.Name, scanner.deviceName)
+	scanner.pcapHandle, err = pcap.OpenLive(scanner.deviceName, 65536, true, pcap.BlockForever)
 	if err != nil {
 		logger.Fatalf("打开网卡设备失败: %v", err)
 	}
-	scanner.dstMac, err = scanner.getHwAddr()
+	scanner.dstMac, err = scanner.getHwAddr(*scanner.srcIface)
 	if err != nil {
 		logger.Fatalf("获取网关mac失败: %v", err)
 	}
@@ -81,57 +92,47 @@ func (s *Scanner) SetIPCache(c ifaces.ICache) {
 	s.ipCache = c
 }
 
-// getHwAddr is a hacky but effective way to get the destination hardware
-// address for our packets.  It does an ARP request for our gateway (if there is
-// one) or destination IP (if no gateway is necessary), then waits for an ARP
-// reply.  This is pretty slow right now, since it blocks on the ARP
-// request/reply.
-// ref: https://github.com/google/gopacket/blob/master/examples/synscan/main.go
-func (s *Scanner) getHwAddr() (net.HardwareAddr, error) {
-	start := time.Now()
-	iface := s.srcIface
-	src := s.srcIP
-	arpDst := net.ParseIP(ExternalTargetForTune).To4()
-
-	// Prepare the layers to send for an ARP request.
-	eth := layers.Ethernet{
-		SrcMAC:       iface.HardwareAddr,
-		DstMAC:       net.HardwareAddr{0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
-		EthernetType: layers.EthernetTypeARP,
-	}
-	arp := layers.ARP{
-		AddrType:          layers.LinkTypeEthernet,
-		Protocol:          layers.EthernetTypeIPv4,
-		HwAddressSize:     6,
-		ProtAddressSize:   4,
-		Operation:         layers.ARPRequest,
-		SourceHwAddress:   []byte(iface.HardwareAddr),
-		SourceProtAddress: []byte(src),
-		DstHwAddress:      []byte{0, 0, 0, 0, 0, 0},
-		DstProtAddress:    []byte(arpDst),
-	}
-	// Send a single ARP request packet (we never retry a send, since this
-	// is just an example ;)
-	if err := s.send(&eth, &arp); err != nil {
-		return nil, err
-	}
-	// Wait 3 seconds for an ARP reply.
-	for {
-		if time.Since(start) > time.Second*3 {
-			return nil, errors.New("timeout getting ARP reply")
-		}
-		data, _, err := s.pcapHandle.ReadPacketData()
-		if err == pcap.NextErrorTimeoutExpired {
-			continue
-		} else if err != nil {
-			return nil, err
-		}
-		packet := gopacket.NewPacket(data, layers.LayerTypeEthernet, gopacket.NoCopy)
-		if arpLayer := packet.Layer(layers.LayerTypeARP); arpLayer != nil {
-			arp := arpLayer.(*layers.ARP)
-			if net.IP(arp.SourceProtAddress).Equal(net.IP(arpDst)) {
-				return net.HardwareAddr(arp.SourceHwAddress), nil
+// getHwAddr 获取网关mac地址（发送一个dns包，监听获取网关mac地址）
+// ref: https://github.com/boy-hack/ksubdomain/blob/main/core/device/device.go#L15
+func (s *Scanner) getHwAddr(srcIface net.Interface) (net.HardwareAddr, error) {
+	domain := util.RandomStr(4) + ".baidu.com"
+	signal := make(chan net.HardwareAddr)
+	var e error
+	go func() {
+		for {
+			data, _, err := s.pcapHandle.ReadPacketData()
+			if err == pcap.NextErrorTimeoutExpired {
+				continue
+			} else if err != nil {
+				signal <- nil
+				e = err
 			}
+			packet := gopacket.NewPacket(data, layers.LayerTypeEthernet, gopacket.NoCopy)
+			if dnsLayer := packet.Layer(layers.LayerTypeDNS); dnsLayer != nil {
+				dns, _ := dnsLayer.(*layers.DNS)
+				if !dns.QR {
+					continue
+				}
+				for _, v := range dns.Questions {
+					if string(v.Name) == domain {
+						ethLayer := packet.Layer(layers.LayerTypeEthernet)
+						if ethLayer != nil {
+							eth := ethLayer.(*layers.Ethernet)
+							signal <- eth.SrcMAC
+							return
+						}
+					}
+				}
+			}
+		}
+	}()
+	for {
+		select {
+		case c := <-signal:
+			return c, e
+		default:
+			_, _ = net.LookupHost(domain)
+			time.Sleep(time.Second * 1)
 		}
 	}
 }
@@ -154,7 +155,10 @@ func (s *Scanner) Act(ctx context.Context, ipports <-chan interface{}) <-chan in
 	}()
 	go func() {
 		defer close(res)
-		s.recvAck(ctx, res)
+		err := s.recvAck(ctx, res)
+		if err != nil {
+			logger.Errorf("receive ack error: %v", err)
+		}
 	}()
 	return res
 }
@@ -179,12 +183,15 @@ func (s *Scanner) writeSYN(ctx context.Context, ipport *IPPort) {
 		DstPort: layers.TCPPort(ipport.Port), // will be incremented during the scan
 		SYN:     true,
 	}
-	tcp.SetNetworkLayerForChecksum(&ip4)
+	err := tcp.SetNetworkLayerForChecksum(&ip4)
+	if err != nil {
+		logger.Warnf("checksum error: %v", err)
+	}
 	if err := s.send(&eth, &ip4, &tcp); err != nil {
 		logger.Warnf("error sending to %v:%v: %v", ipport.IP.String(), tcp.DstPort, err)
 		return
 	}
-	s.ipCache.Set(ipport.IP.String(), struct{}{}, -1)
+	s.ipCache.Set(ipport.String(), struct{}{}, 0)
 }
 
 // send sends the given layers as a single packet on the network.
@@ -201,7 +208,7 @@ func (s *Scanner) send(l ...gopacket.SerializableLayer) error {
 func (s *Scanner) recvAck(ctx context.Context, resultChan chan<- interface{}) error {
 	var snapshotLen = 65536
 	var readtimeout = 1500
-	inactive, err := pcap.NewInactiveHandle(s.srcIface.Name)
+	inactive, err := pcap.NewInactiveHandle(s.deviceName)
 	if err != nil {
 		return err
 	}
@@ -268,11 +275,13 @@ func (s *Scanner) recvAck(ctx context.Context, resultChan chan<- interface{}) er
 			}
 			for _, layerType := range decoded {
 				if layerType == layers.LayerTypeTCP {
-					_, found := s.ipCache.Get(ip4.SrcIP.String())
+					ipport := fmt.Sprintf("%s:%d", ip4.SrcIP.String(), tcp.SrcPort)
+					_, found := s.ipCache.Get(ipport)
 					if !found {
 						logger.Debugf("Discarding TCP packet from non target ip %s\n", ip4.SrcIP.String())
 						continue
 					}
+					s.ipCache.Delete(ipport)
 
 					// We consider only incoming packets
 					if tcp.DstPort != layers.TCPPort(s.listenPort) {
