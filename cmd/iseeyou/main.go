@@ -138,6 +138,8 @@ func main() {
 								continue
 							} 
 						}
+					} else {
+						for range chIpPortWithTcpOpen {}
 					}
 					return nil
 				},
