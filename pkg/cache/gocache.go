@@ -12,7 +12,7 @@ type GoCache struct {
 
 func NewGoCache() *GoCache {
 	return &GoCache{
-		c: cache.New(5*time.Minute, 10*time.Minute),
+		c: cache.New(5*time.Minute, 5*time.Minute),
 	}
 }
 
@@ -27,4 +27,8 @@ func (gcache *GoCache) Set(k string, v interface{}, d time.Duration) {
 		d = cache.NoExpiration
 	}
 	gcache.c.Set(k, v, d)
+}
+
+func (gcache *GoCache) Delete(k string) {
+	gcache.c.Delete(k)
 }
